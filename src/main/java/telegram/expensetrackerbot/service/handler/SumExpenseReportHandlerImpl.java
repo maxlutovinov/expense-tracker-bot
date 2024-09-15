@@ -12,7 +12,7 @@ import telegram.expensetrackerbot.model.entity.Expense;
 
 @Component
 public class SumExpenseReportHandlerImpl implements ReportHandler {
-    private final StringBuilder expenseReport = new StringBuilder(SUMMARY_HEADER);
+    private StringBuilder expenseReport;
 
     @Override
     public boolean isApplicable(CommandState commandState) {
@@ -21,23 +21,25 @@ public class SumExpenseReportHandlerImpl implements ReportHandler {
 
     @Override
     public String buildReport(List<Expense> expenses) {
+        expenseReport = new StringBuilder(SUMMARY_HEADER);
+
         Map<String, BigDecimal> expenseByUserAndCategory = getExpenseByKey(expenses, USER_CATEGORY);
         appendInfoToReport(expenseByUserAndCategory, null);
 
         Map<String, BigDecimal> expenseByUser = getExpenseByKey(expenses, USER);
-        BigDecimal totalCost = BigDecimal.valueOf(0);
-        appendInfoToReport(expenseByUser, totalCost);
+        BigDecimal totalCost = appendInfoToReport(expenseByUser, BigDecimal.valueOf(0));
 
         expenseReport.append(TOTAL).append(REPORT_DELIMITER).append(totalCost);
         return expenseReport.toString();
     }
 
-    private void appendInfoToReport(Map<String, BigDecimal> expenseByKey, BigDecimal totalCost) {
+    private BigDecimal appendInfoToReport(Map<String, BigDecimal> expenseByKey,
+                                          BigDecimal totalCost) {
         for (Map.Entry<String, BigDecimal> expenseSet : expenseByKey.entrySet()) {
-            String userFirstNameAndCategory = expenseSet.getKey().substring(
+            String key = expenseSet.getKey().substring(
                     expenseSet.getKey().indexOf(REPORT_DELIMITER.trim()) + 2);
             expenseReport.append(System.lineSeparator())
-                    .append(userFirstNameAndCategory)
+                    .append(key)
                     .append(REPORT_DELIMITER)
                     .append(expenseSet.getValue());
             if (totalCost != null) {
@@ -45,15 +47,16 @@ public class SumExpenseReportHandlerImpl implements ReportHandler {
             }
         }
         expenseReport.append(System.lineSeparator());
+        return totalCost;
     }
 
-    private static Map<String, BigDecimal> getExpenseByKey(List<Expense> expenses, String key) {
+    private static Map<String, BigDecimal> getExpenseByKey(List<Expense> expenses, String keyWord) {
         Map<String, BigDecimal> expenseByKey = new TreeMap<>();
         for (Expense expense : expenses) {
             Long telegramUserId = expense.getUserAccount().getTelegramUserId();
             String userFirstName = expense.getUserAccount().getFirstName();
             String user = telegramUserId + REPORT_DELIMITER + userFirstName;
-            key = key.equals(USER) ? user
+            String key = keyWord.equals(USER) ? user
                     : user + REPORT_DELIMITER + expense.getExpenseCategory().getName();
             BigDecimal cost = expense.getCost();
             if (expenseByKey.containsKey(key)) {
