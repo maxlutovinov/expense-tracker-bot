@@ -44,4 +44,9 @@ public class Constants {
     public static final String MESSAGE_WELCOME = "This bot helps you track your expenses 🤑";
     public static final String NEW_UPDATE = "New update";
     public static final String REPORT_DELIMITER = ", ";
+    public static final String DETAILED_HEADER = "<u>user, date, category, cost, comment</u>";
+    public static final String SUMMARY_HEADER = "<u>user, category, cost</u>";
+    public static final String TOTAL = "Total";
+    public static final String USER = "user";
+    public static final String USER_CATEGORY = "userAndCategory";
 }

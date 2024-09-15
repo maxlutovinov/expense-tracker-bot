@@ -1,6 +1,6 @@
 package telegram.expensetrackerbot.service.handler;
 
-import static telegram.expensetrackerbot.util.Constants.REPORT_DELIMITER;
+import static telegram.expensetrackerbot.util.Constants.*;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -12,6 +12,8 @@ import telegram.expensetrackerbot.model.entity.Expense;
 
 @Component
 public class SumExpenseReportHandlerImpl implements ReportHandler {
+    StringBuilder expenseReport = new StringBuilder(SUMMARY_HEADER);
+
     @Override
     public boolean isApplicable(CommandState commandState) {
         return commandState.equals(CommandState.SHOW_SUMMARY_EXPENSES);
@@ -19,60 +21,48 @@ public class SumExpenseReportHandlerImpl implements ReportHandler {
 
     @Override
     public String buildReport(List<Expense> expenses) {
-        StringBuilder expenseReport = new StringBuilder("<u>user, category, cost</u>");
-        Map<String, BigDecimal> expenseByUserAndCategory = getExpenseByUserAndCategory(expenses);
-        for (Map.Entry<String, BigDecimal> expenseSet : expenseByUserAndCategory.entrySet()) {
+        Map<String, BigDecimal> expenseByUserAndCategory = getExpenseByKey(expenses, USER_CATEGORY);
+        appendInfoToReport(expenseByUserAndCategory, null);
+
+        Map<String, BigDecimal> expenseByUser = getExpenseByKey(expenses, USER);
+        BigDecimal totalCost = BigDecimal.valueOf(0);
+        appendInfoToReport(expenseByUser, totalCost);
+
+        expenseReport.append(TOTAL).append(REPORT_DELIMITER).append(totalCost);
+        return expenseReport.toString();
+    }
+
+    private void appendInfoToReport(Map<String, BigDecimal> expenseByKey, BigDecimal totalCost) {
+        for (Map.Entry<String, BigDecimal> expenseSet : expenseByKey.entrySet()) {
             String userFirstNameAndCategory = expenseSet.getKey().substring(
-                    expenseSet.getKey().indexOf(",") + 2);
+                    expenseSet.getKey().indexOf(REPORT_DELIMITER.trim()) + 2);
             expenseReport.append(System.lineSeparator())
                     .append(userFirstNameAndCategory)
                     .append(REPORT_DELIMITER)
                     .append(expenseSet.getValue());
+            if (totalCost != null) {
+                totalCost = totalCost.add(expenseSet.getValue());
+            }
         }
-        Map<String, BigDecimal> expenseByUser = getExpenseByUser(expenses);
-        for (Map.Entry<String, BigDecimal> expenseSet : expenseByUser.entrySet()) {
-            String userFirstName = expenseSet.getKey().substring(
-                    expenseSet.getKey().indexOf(",") + 2);
-            expenseReport.append(System.lineSeparator())
-                    .append(userFirstName)
-                    .append(REPORT_DELIMITER)
-                    .append(expenseSet.getValue());
-        }
-        return expenseReport.toString();
+        expenseReport.append(System.lineSeparator());
     }
 
-    private static Map<String, BigDecimal> getExpenseByUser(List<Expense> expenses) {
-        Map<String, BigDecimal> expenseByUser = new TreeMap<>();
+    private static Map<String, BigDecimal> getExpenseByKey(List<Expense> expenses, String key) {
+        Map<String, BigDecimal> expenseByKey = new TreeMap<>();
         for (Expense expense : expenses) {
             Long telegramUserId = expense.getUserAccount().getTelegramUserId();
             String userFirstName = expense.getUserAccount().getFirstName();
-            String user = telegramUserId + ", " + userFirstName;
+            String user = telegramUserId + REPORT_DELIMITER + userFirstName;
+            key = key.equals(USER) ? user
+                    : user + REPORT_DELIMITER + expense.getExpenseCategory().getName();
             BigDecimal cost = expense.getCost();
-            if (expenseByUser.containsKey(user)) {
-                BigDecimal sumExpense = expenseByUser.get(user).add(cost);
-                expenseByUser.put(user, sumExpense);
+            if (expenseByKey.containsKey(key)) {
+                BigDecimal sumExpense = expenseByKey.get(key).add(cost);
+                expenseByKey.put(key, sumExpense);
             } else {
-                expenseByUser.put(user, cost);
+                expenseByKey.put(key, cost);
             }
         }
-        return expenseByUser;
-    }
-
-    private static Map<String, BigDecimal> getExpenseByUserAndCategory(List<Expense> expenses) {
-        Map<String, BigDecimal> expenseByUserAndCategory = new TreeMap<>();
-        for (Expense expense : expenses) {
-            Long telegramUserId = expense.getUserAccount().getTelegramUserId();
-            String userFirstName = expense.getUserAccount().getFirstName();
-            String category = expense.getExpenseCategory().getName();
-            String userAndCategory = telegramUserId + ", " + userFirstName + ", " + category;
-            BigDecimal cost = expense.getCost();
-            if (expenseByUserAndCategory.containsKey(userAndCategory)) {
-                BigDecimal sumExpense = expenseByUserAndCategory.get(userAndCategory).add(cost);
-                expenseByUserAndCategory.put(userAndCategory, sumExpense);
-            } else {
-                expenseByUserAndCategory.put(userAndCategory, cost);
-            }
-        }
-        return expenseByUserAndCategory;
+        return expenseByKey;
     }
 }
