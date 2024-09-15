@@ -12,7 +12,7 @@ import telegram.expensetrackerbot.model.entity.Expense;
 
 @Component
 public class SumExpenseReportHandlerImpl implements ReportHandler {
-    StringBuilder expenseReport = new StringBuilder(SUMMARY_HEADER);
+    private final StringBuilder expenseReport = new StringBuilder(SUMMARY_HEADER);
 
     @Override
     public boolean isApplicable(CommandState commandState) {
