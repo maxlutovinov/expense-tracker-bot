@@ -1,6 +1,6 @@
 package telegram.expensetrackerbot.service.handler;
 
-import static telegram.expensetrackerbot.util.Constants.REPORT_DELIMITER;
+import static telegram.expensetrackerbot.util.Constants.*;
 
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -16,8 +16,7 @@ public class ExpenseReportHandlerImpl implements ReportHandler {
 
     @Override
     public String buildReport(List<Expense> expenses) {
-        StringBuilder expenseReport = new StringBuilder(
-                "<u>user, date, category, cost, comment</u>");
+        StringBuilder expenseReport = new StringBuilder(DETAILED_HEADER);
         for (Expense expense : expenses) {
             expenseReport.append(System.lineSeparator())
                     .append(expense.getUserAccount().getFirstName())
